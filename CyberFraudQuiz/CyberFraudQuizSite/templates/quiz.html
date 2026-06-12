@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Тестирование | Квест по кибермошенничеству{% endblock %}
+
+{% block content %}
+<section class="quiz-page">
+    <div class="quiz-card-single">
+        <div class="hero-badge">
+            <i class="bi bi-patch-question"></i>
+            Вопрос {{ current }} из {{ total }}
+        </div>
+        <h1 class="hero-title">{{ question.header }}</h1>
+        <p class="quiz-question-text">
+            {{ question.text }}
+        </p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="quiz-options">
+                {% if not is_explanation %}
+                {% for key, value in question.options.items %}
+                <label class="quiz-option-item" for="option{{ key }}">
+                    <input class="quiz-radio" type="radio" name="answer" id="option{{ key }}" value="{{ key }}"
+                           required>
+                    <span>{{ value }}</span>
+                </label>
+                {% endfor %}
+                {% else %}
+                <div>
+                    <p class="quiz-question-text">
+                        <strong>Вы ответили:</strong> {{ last_answer }}
+                    </p>
+                    <p class="hero-description quiz-question-text">
+                        {{ explanation }}
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="quiz-actions">
+                <button type="submit" class="btn-test quiz-next-btn">
+                    {% if not is_explanation %}
+                    Ответить
+                    {% elif current < total %}
+                    Следующий вопрос
+                    {% else %}
+                    Закончить тестирование
+                    {% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
