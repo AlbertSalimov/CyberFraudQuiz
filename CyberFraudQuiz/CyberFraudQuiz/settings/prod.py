@@ -27,6 +27,14 @@ DEBUG = False
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
+
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_HTTPONLY = False
+
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
