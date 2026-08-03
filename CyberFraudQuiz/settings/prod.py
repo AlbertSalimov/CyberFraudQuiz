@@ -11,10 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from .base import *
-from dotenv import load_dotenv
 import os
-
-load_dotenv("/opt/CyberFraudQuiz/.env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
