@@ -11,14 +11,14 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cyber_fraud_quiz"]
+      test: [ "CMD-SHELL", "pg_isready -U cyber_fraud_quiz" ]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
   web:
-    build: .
+    image: ghcr.io/albertsalimov/cyber_fraud_quiz:latest
     container_name: django_app
     env_file:
       - .env
