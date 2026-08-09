@@ -36,10 +36,9 @@ services:
     container_name: django_nginx
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
-      - ./nginx/proxy_params:/etc/nginx/proxy_params
       - static_volume:/opt/CyberFraudQuiz/staticfiles
     ports:
-      - "8080:80"
+      - "80:80"
     depends_on:
       - web
     restart: unless-stopped
