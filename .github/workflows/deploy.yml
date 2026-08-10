@@ -2,9 +2,9 @@ name: Build & push to ghcr.io
 
 on:
   push:
-    branches: [ "develop" ]  # Запускается при пуше в develop
+    branches: [ "develop" ]
   pull_request:
-    branches: [ "develop" ] # Запускается при создании PR в develop
+    branches: [ "develop" ]
 
 jobs:
   build_and_push:
@@ -26,3 +26,21 @@ jobs:
           context: .
           push: true
           tags: ghcr.io/albertsalimov/cyber_fraud_quiz:latest
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build_and_push
+    if: github.ref == 'refs/heads/develop'
+    steps:
+      - name: Deploy to prod server via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd /opt/CyberFraudQuiz
+            docker compose pull web
+            docker compose up -d web
+            docker image prune -f
