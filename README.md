@@ -20,7 +20,7 @@ sudo apt install git python3 python3.13-venv postgresql
 git clone https://github.com/AlbertSalimov/CyberFraudQuiz.git
 ```
 
-Перейти в папку проекта и переключиться на ветку develop:
+Перейти в папку проекта и переключиться на ветку `develop`:
 
 ```
 cd CyberFraudQuiz/
@@ -33,7 +33,7 @@ git checkout develop
 python3 -m venv .venv
 ```
 
-Для настройки базы данных зайти в консоль PostgreSQL от стандартного пользователя postgres:
+Для настройки базы данных зайти в консоль PostgreSQL от стандартного пользователя `postgres`:
 
 ```
 sudo -u postgres psql
@@ -63,7 +63,7 @@ GRANT ALL ON SCHEMA public TO your_user;
 \q
 ```
 
-Создать файл .env с переменными окружения:
+Создать файл `.env` с переменными окружения:
 
 ```
 DB_NAME=database_name
@@ -103,19 +103,72 @@ python3 manage.py runserver
 sudo curl -fsSL https://get.docker.com | sh
 ```
 
-Git будет установлен вместе с docker. Клонировать репозиторий:
+Создать папку для проекта, например `/opt/CyberFraudQuiz`:
 
 ```
-git clone https://github.com/AlbertSalimov/CyberFraudQuiz.git
+sudo mkdir /opt/CyberFraudQuiz
 ```
 
 Перейти в папку проекта:
 
 ```
-cd CyberFraudQuiz/
+cd /opt/CyberFraudQuiz
 ```
 
-Создать файл .env с переменными окружения:
+Создать файл `docker-compose.yml`:
+
+```
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: django_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  web:
+    image: ghcr.io/albertsalimov/cyber_fraud_quiz:latest
+    container_name: django_app
+    env_file:
+      - .env
+    volumes:
+      - static_volume:/opt/CyberFraudQuiz/staticfiles
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.26-alpine
+    container_name: django_nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - static_volume:/opt/CyberFraudQuiz/staticfiles
+    ports:
+      - "80:80"
+    depends_on:
+      - web
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  static_volume:
+```
+
+Создать файл `.env` с переменными окружения:
 
 ```
 DB_NAME=database_name
@@ -128,22 +181,38 @@ ALLOWED_HOSTS=prod_server_ip
 CSRF_TRUSTED_ORIGINS=http://prod_server_ip:8080
 ```
 
-Запустить контейнеры через docker compose с ключом --build (для сборки контейнера с приложением в первый раз):
+Создать файл `nginx.conf` в подпапке `nginx`:
 
 ```
-sudo docker compose up --build
+upstream django_app {
+    server web:8000;
+}
+
+server {
+    listen 80;
+
+    access_log /var/log/nginx/CyberFraudQuiz_access.log;
+    error_log /var/log/nginx/CyberFraudQuiz_error.log;
+
+    location /static/ {
+        alias /opt/CyberFraudQuiz/staticfiles/;
+        expires 30d;
+    }
+
+    location / {
+        proxy_pass http://django_app;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
 ```
 
-Последующие запуски контейнеров на этом же сервере можно осуществлять командой:
+Запустить контейнеры через docker compose:
 
 ```
 sudo docker compose up -d
 ```
 
-Для доступа к сайту перейти по ссылке http://prod_server_ip:8080
-
-Остановка контейнеров:
-
-```
-sudo docker compose down
-```
+Для доступа к сайту перейти по ссылке http://prod_server_ip
