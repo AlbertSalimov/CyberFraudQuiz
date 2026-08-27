@@ -41,6 +41,6 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd /opt/CyberFraudQuiz
-            docker compose pull web
-            docker compose up -d web
-            docker image prune -f
+            wget -q -O deploy.sh https://raw.githubusercontent.com/AlbertSalimov/CyberFraudQuiz/refs/heads/main/deploy.sh
+            chmod +x deploy.sh
+            ./deploy.sh

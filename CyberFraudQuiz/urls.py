@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from CyberFraudQuizSite import views
 
 urlpatterns = [
@@ -8,4 +8,5 @@ urlpatterns = [
     path("quiz", views.quiz, name="quiz"),
     path("about", views.about, name="about"),
     path("result", views.result, name="result"),
+    path("", include("django_prometheus.urls"))
 ]
