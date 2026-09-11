@@ -1,69 +1,147 @@
 # Сайт квеста по кибермошенничеству
 
-## Структура веток
+Веб-приложение для проведения викторин по кибербезопасности.
 
-- `main` — продакшен-версия
-- `develop` — текущая разработка
+## Оглавление
 
-## Запуск вручную для разработки (на примере Debian 13)
+- [Технологии](#технологии)
+- [Требования](#требования)
+- [Запуск](#запуск)
+- [Конфигурация](#конфигурация)
+- [CI/CD](#cicd)
+- [Мониторинг](#мониторинг)
+- [Инфраструктура как код](#инфраструктура-как-код)
+- [Структура проекта](#структура-проекта)
+- [Автор](#автор)
+- [Демо](#демо)
 
-Установить требуемые пакеты в системе:
+---
+
+## Технологии
+
+| Компонент            | Технология                           |
+|----------------------|--------------------------------------|
+| **Backend**          | Django + Gunicorn                    |
+| **Database**         | PostgreSQL                           |
+| **Web Server**       | Nginx                                |
+| **Containerization** | Docker + Docker Compose              |
+| **CI/CD**            | GitHub Actions                       |
+| **Monitoring**       | Prometheus + Grafana + Node Exporter |
+| **Registry**         | GitHub Container Registry (GHCR)     |
+
+---
+
+## Требования
+
+- Docker v29+
+- Docker Compose v5+
+
+---
+
+## Запуск
+
+### На продакшене (на примере Debian 13)
+
+#### 1. Установка Docker
+
+```
+sudo curl -fsSL https://get.docker.com | sh
+```
+
+#### 2. Создание папки для проекта
+
+```
+sudo mkdir /opt/CyberFraudQuiz
+```
+
+#### 3. Запуск deploy-скрипта
+
+```
+cd /opt/CyberFraudQuiz
+wget -q -O deploy.sh https://raw.githubusercontent.com/AlbertSalimov/CyberFraudQuiz/refs/heads/main/deploy.sh
+chmod +x deploy.sh
+./deploy.sh
+```
+
+Скрипт выполняет следующие действия:
+
+- скачивание необходимых файлов (`docker-compose.yml`; конфиги `nginx`, `prometheus`, `grafana`);
+- генерация случайных имени пользователя и пароля для базы данных;
+- генерация случайного `secret_key` для Django;
+- определение внешнего IP адреса сервера для переменной `ALLOWED_HOSTS`;
+- сохранение всех данных в файл с переменными окружения `.env`;
+- запуск контейнеров через `docker compose`.
+
+После запуска доступны ссылки:
+
+- **Сайт**: `http://server_ip`
+- **Админка**: `http://server_ip/admin`
+- **Метрики Django**: `http://server_ip/metrics`
+
+### Запуск вручную для разработки
+
+<details>
+<summary>Инструкция на примере Debian 13</summary>
+
+#### 1. Установка требуемых пакетов в системе
 
 ```
 sudo apt update
 sudo apt install git python3 python3.13-venv postgresql
 ```
 
-Клонировать репозиторий:
+#### 2. Клонирование репозитория
 
 ```
 git clone https://github.com/AlbertSalimov/CyberFraudQuiz.git
 ```
 
-Перейти в папку проекта и переключиться на ветку `develop`:
+#### 3. Переключение на ветку develop
 
 ```
 cd CyberFraudQuiz/
 git checkout develop
 ```
 
-Создать виртуальное окружение python:
+#### 4. Создание виртуального окружения python
 
 ```
 python3 -m venv .venv
 ```
 
-Для настройки базы данных зайти в консоль PostgreSQL от стандартного пользователя `postgres`:
+#### 5. Настройка базы данных
+
+Вход в консоль PostgreSQL от стандартного пользователя `postgres` для настройки базы данных:
 
 ```
 sudo -u postgres psql
 ```
 
-Создать пользователя, от которого будет подключаться наше приложение к базе данных:
+Создание пользователя, от которого будет подключаться наше приложение к базе данных:
 
 ```
 CREATE USER your_user WITH PASSWORD 'your_password';
 ```
 
-Создать базу данных, с которой будет работать наше приложение:
+Создание базы данных, с которой будет работать наше приложение:
 
 ```
 CREATE DATABASE database_name OWNER your_user;
 ```
 
-Дать права нашему пользователю:
+Установка прав нашему пользователю:
 
 ```
 GRANT ALL ON SCHEMA public TO your_user;
 ```
 
-Выйти из консоли PostgreSQL:
+Выход из консоли PostgreSQL:
 
 ```
 \q
 ```
 
-Создать файл `.env` с переменными окружения:
+#### 6. Создание файла `.env` с переменными окружения
 
 ```
 DB_NAME=database_name
@@ -75,144 +153,197 @@ SECRET_KEY=your_secret_key
 ALLOWED_HOSTS=*
 ```
 
-Выполнить миграции:
+#### 7. Выполнение миграций
 
 ```
 python3 manage.py migrate
 ```
 
-Загрузить вопросы для квеста в базу данных:
+#### 8. Загрузка вопросов для квеста в базу данных
 
 ```
 python3 manage.py loaddata questions.json
 ```
 
-Запустить приложение:
+#### 9. Запуск приложения
 
 ```
 python3 manage.py runserver
 ```
 
-Для доступа к сайту перейти по ссылке http://127.0.0.1:8000
+Сайт будет доступен по ссылке `http://127.0.0.1:8000`
+</details>
 
-## Запуск в docker-контейнере на продакшене (на примере Debian 13)
+---
 
-Установить docker:
+## Конфигурация
 
-```
-sudo curl -fsSL https://get.docker.com | sh
-```
+<details>
+<summary>Переменные окружения (.env)</summary>
 
-Создать папку для проекта, например `/opt/CyberFraudQuiz`:
+| Переменная             | Описание              | Пример                                  |
+|------------------------|-----------------------|-----------------------------------------|
+| `DB_NAME`              | Имя базы данных       | `cyber_fraud_quiz`                      |
+| `DB_USER`              | Пользователь БД       | генерируется автоматически              |
+| `DB_PASSWORD`          | Пароль БД             | генерируется автоматически              |
+| `DB_HOST`              | Хост БД               | `db`                                    |
+| `DB_PORT`              | Порт БД               | `5432`                                  |
+| `SECRET_KEY`           | Секретный ключ Django | генерируется автоматически              |
+| `ALLOWED_HOSTS`        | Разрешенные хосты     | `localhost,web,192.168.1.100`           |
+| `CSRF_TRUSTED_ORIGINS` | Доверенные источники  | `http://localhost,http://192.168.1.100` |
 
-```
-sudo mkdir /opt/CyberFraudQuiz
-```
+</details>
+<details>
+<summary>Docker Compose сервисы</summary>
 
-Перейти в папку проекта:
+| Сервис       | Описание           | Порт   |
+|--------------|--------------------|--------|
+| `db`         | PostgreSQL         | `5432` |
+| `web`        | Django + Gunicorn  | `8000` |
+| `nginx`      | Nginx (веб-сервер) | `80`   |
+| `prometheus` | Сбор метрик        | `9090` |
+| `grafana`    | Визуализация       | `3000` |
 
-```
-cd /opt/CyberFraudQuiz
-```
+</details>
 
-Создать файл `docker-compose.yml`:
+---
 
-```
-services:
-  db:
-    image: postgres:17-alpine
-    container_name: django_db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER}" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
+## CI/CD
 
-  web:
-    image: ghcr.io/albertsalimov/cyber_fraud_quiz:latest
-    container_name: django_app
-    env_file:
-      - .env
-    volumes:
-      - static_volume:/opt/CyberFraudQuiz/staticfiles
-    expose:
-      - "8000"
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
+При пуше в ветку `main` автоматически:
 
-  nginx:
-    image: nginx:1.26-alpine
-    container_name: django_nginx
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
-      - static_volume:/opt/CyberFraudQuiz/staticfiles
-    ports:
-      - "80:80"
-    depends_on:
-      - web
-    restart: unless-stopped
+1. Собирается Docker-образ;
+2. Образ публикуется в GitHub Container Registry (GHCR);
+3. Происходит деплой на сервер по SSH.
 
-volumes:
-  postgres_data:
-  static_volume:
-```
+<details>
+<summary>Необходимые секреты GitHub</summary>
 
-Создать файл `.env` с переменными окружения:
+| Имя               | Описание                                          |
+|-------------------|---------------------------------------------------|
+| `SSH_HOST`        | IP-адрес сервера                                  |
+| `SSH_PORT`        | Порт SSH                                          |
+| `SSH_PRIVATE_KEY` | Приватный SSH-ключ                                |
+| `SSH_USER`        | Имя пользователя                                  |
+| `GITHUB_TOKEN`    | Токен доступа (генерируется автоматически GitHub) |
 
-```
-DB_NAME=database_name
-DB_USER=your_user
-DB_PASSWORD=your_password
-DB_HOST=db
-DB_PORT=5432
-SECRET_KEY=your_secret_key
-ALLOWED_HOSTS=prod_server_ip
-CSRF_TRUSTED_ORIGINS=http://prod_server_ip:8080
-```
+</details>
 
-Создать файл `nginx.conf` в подпапке `nginx`:
+---
 
-```
-upstream django_app {
-    server web:8000;
-}
+## Мониторинг
 
-server {
-    listen 80;
+После запуска проекта доступны:
 
-    access_log /var/log/nginx/CyberFraudQuiz_access.log;
-    error_log /var/log/nginx/CyberFraudQuiz_error.log;
+- **Prometheus**: `http://server_ip:9090`
+- **Grafana**: `http://server_ip:3000`
+- **Node Exporter**: `http://server_ip:9100/metrics`
 
-    location /static/ {
-        alias /opt/CyberFraudQuiz/staticfiles/;
-        expires 30d;
-    }
+<details>
+<summary>Дашборды Grafana</summary>
 
-    location / {
-        proxy_pass http://django_app;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
+| Дашборд              | Описание                    |
+|----------------------|-----------------------------|
+| `Django`             | Статистика запросов к сайту |
+| `Node Exporter Full` | Состояние сервера           |
 
-Запустить контейнеры через docker compose:
+</details>
+
+---
+
+## Инфраструктура как код
+
+Инфраструктура проекта описана с помощью **Terraform** и хранится в папке `terraform/`. Это позволяет:
+
+- Создавать всю инфраструктуру одной командой;
+- Сохранять историю изменения инфраструктуры в Git;
+- Переиспользовать код для разных окружений.
+
+В качестве провайдера для данного проекта был выбран `Yandex Cloud`.
+
+### Структура
 
 ```
-sudo docker compose up -d
+terraform/
+├── modules/
+│   ├── compute/              # модуль виртуальной машины
+│   │   ├── main.tf
+│   │   ├── outputs.tf
+│   │   └── variables.tf
+│   └── vpc/                  # модуль виртуальной сети
+│       ├── main.tf
+│       ├── outputs.tf
+│       └── variables.tf
+├── main.tf                   # основной конфиг Terraform
+├── outputs.tf                # выходные значения
+├── providers.tf              # настройка провайдера Yandex Cloud
+├── terraform.tfvars.example  # шаблон значений для переменных
+└── variables.tf              # переменные
 ```
 
-Для доступа к сайту перейти по ссылке http://prod_server_ip
+### Запуск
+
+```
+cd terraform
+terraform init      # инициализация и установка провайдера
+terraform plan      # план изменений
+terraform apply     # создание инфраструктуры
+```
+
+### Получение IP адреса
+
+```
+terraform output external_ip
+```
+
+В результате была создана виртуальная машина в `Yandex Cloud` со следующими параметрами:
+
+- **OS**: `Debian 13`
+- **CPU**: `2 cores`
+- **RAM**: `2 GB`
+- **Disk**: `10 GB`
+
+---
+
+## Структура проекта
+
+```
+CyberFraudQuiz
+├── .github/
+│   └── workflows/
+│       └── deploy.yml    # CI/CD пайплайн
+├── CyberFraudQuiz/       # настройки Django-проекта
+├── CyberFraudQuizSite/   # основной код приложения
+├── static/               # папка со статическими файлами приложения (css, иконки)
+├── terraform/            # конфиги для Terraform
+├── .dockerignore         # файлы для исключения из Docker-образа
+├── .env.example          # шаблон переменных окружения
+├── .gitignore            # игнорируемые файлы
+├── Dockerfile            # сборка образа Django-приложения
+├── deploy.sh             # развертывание на сервере
+├── docker-compose.yml    # оркестрация всех сервисов
+├── entrypoint.sh         # скрипт для миграций и загрузки вопросов
+├── grafana.ini           # конфигурация Grafana
+├── nginx.conf            # конфигурация веб-сервера
+├── prometheus.yml        # конфигурация Prometheus
+├── questions.json        # список вопросов для загрузки в приложение
+└── requirements.txt      # зависимости Python
+```
+
+---
+
+## Автор
+
+**Albert Salimov** - System Administrator  
+[GitHub](https://github.com/AlbertSalimov) · [Telegram](https://t.me/albert_salimov99) · [Email](mailto:salimovalbert99@yandex.ru)
+
+> Проект выполнен в рамках портфолио. Используемые технологии:  
+> Django, PostgreSQL, Nginx, Docker, GitHub Actions, Prometheus, Grafana, Terraform.
+
+---
+
+## Демо
+
+Проект развернут на сервере `Yandex Cloud` и доступен по адресу:
+
+**[http://81.26.179.171](http://81.26.179.171)**
