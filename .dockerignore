@@ -14,3 +14,14 @@ staticfiles/
 .vscode/
 .idea/
 .env
+.github/
+terraform/
+.dockerignore
+.env.example
+.gitignore
+deploy.sh
+docker-compose.yml
+Dockerfile
+grafana.ini
+nginx.conf
+prometheus.yml
