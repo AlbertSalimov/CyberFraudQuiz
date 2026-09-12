@@ -1,0 +1,17 @@
+network_name             = "app_network"
+subnet_name              = "app_subnet"
+zone                     = "ru-central1-d"
+cidr_block               = "10.0.0.0/24"
+image_family             = "debian-13"
+instance_name            = "django_app"
+platform_id              = "standard-v3"
+hostname                 = "app-vm"
+cores                    = 2
+memory                   = 2
+disk_size                = 10
+enable_nat               = true
+ssh_user                 = "user"
+ssh_pubkey_file          = "~/.ssh/id_ed25519.pub"
+service_account_key_file = "key.json"
+cloud_id                 = "cloud_id"
+folder_id                = "folder_id"
