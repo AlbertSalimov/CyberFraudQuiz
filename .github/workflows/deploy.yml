@@ -45,13 +45,16 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
+      - name: Create inventory
+        run: |
+          sed -e "s/SSH_HOST/${{ secrets.SSH_HOST }}/" \
+            -e "s/SSH_USER/${{ secrets.SSH_USER }}/" \
+            ansible/inventory/hosts.ini.example > ansible/inventory/hosts.ini
+
       - name: Run Ansible playbook
         run: |
           cd ansible
           ansible-playbook playbooks/deploy.yml
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
 
       - name: Remove SSH key
         run: rm -f ~/.ssh/id_ed25519
