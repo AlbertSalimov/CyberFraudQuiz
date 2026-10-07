@@ -25,3 +25,4 @@ Dockerfile
 grafana.ini
 nginx.conf
 prometheus.yml
+ansible/
