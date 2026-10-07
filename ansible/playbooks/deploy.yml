@@ -1,0 +1,53 @@
+---
+- name: Deploy on remote server
+  hosts: webservers
+  become: true
+
+  vars:
+    app_dir: /opt/CyberFraudQuiz
+    script_url: https://raw.githubusercontent.com/AlbertSalimov/CyberFraudQuiz/refs/heads/main/deploy.sh
+    script_path: "{{ app_dir }}/deploy.sh"
+
+  tasks:
+    - name: Check if Docker is already installed
+      command: docker --version
+      register: docker_check
+      ignore_errors: true
+      changed_when: false
+
+    - name: Install Docker
+      shell: curl -fsSL https://get.docker.com | sh
+      when: docker_check.rc != 0
+      args:
+        creates: /usr/bin/docker
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Create app directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Download deploy.sh from GitHub
+      get_url:
+        url: "{{ script_url }}"
+        dest: "{{ script_path }}"
+        mode: '0755'
+        force: true
+      register: script_download
+
+    - name: Run deploy.sh
+      command: "{{ script_path }}"
+      args:
+        chdir: "{{ app_dir }}"
+      register: deploy_result
+
+    - name: Show deploy output
+      debug:
+        var: deploy_result.stdout_lines
+      when: deploy_result.stdout_lines is defined

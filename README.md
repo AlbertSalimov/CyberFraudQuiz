@@ -11,6 +11,7 @@
 - [CI/CD](#cicd)
 - [Мониторинг](#мониторинг)
 - [Инфраструктура как код](#инфраструктура-как-код)
+- [Ansible](#ansible)
 - [Структура проекта](#структура-проекта)
 - [Автор](#автор)
 - [Демо](#демо)
@@ -20,7 +21,7 @@
 ## Технологии
 
 | Компонент            | Технология                           |
-|----------------------|--------------------------------------|
+| -------------------- | ------------------------------------ |
 | **Backend**          | Django + Gunicorn                    |
 | **Database**         | PostgreSQL                           |
 | **Web Server**       | Nginx                                |
@@ -44,19 +45,19 @@
 
 #### 1. Установка Docker
 
-```
+```bash
 sudo curl -fsSL https://get.docker.com | sh
 ```
 
 #### 2. Создание папки для проекта
 
-```
+```bash
 sudo mkdir /opt/CyberFraudQuiz
 ```
 
 #### 3. Запуск deploy-скрипта
 
-```
+```bash
 cd /opt/CyberFraudQuiz
 wget -q -O deploy.sh https://raw.githubusercontent.com/AlbertSalimov/CyberFraudQuiz/refs/heads/main/deploy.sh
 chmod +x deploy.sh
@@ -85,27 +86,27 @@ chmod +x deploy.sh
 
 #### 1. Установка требуемых пакетов в системе
 
-```
+```bash
 sudo apt update
 sudo apt install git python3 python3.13-venv postgresql
 ```
 
 #### 2. Клонирование репозитория
 
-```
+```bash
 git clone https://github.com/AlbertSalimov/CyberFraudQuiz.git
 ```
 
 #### 3. Переключение на ветку develop
 
-```
+```bash
 cd CyberFraudQuiz/
 git checkout develop
 ```
 
 #### 4. Создание виртуального окружения python
 
-```
+```bash
 python3 -m venv .venv
 ```
 
@@ -113,37 +114,37 @@ python3 -m venv .venv
 
 Вход в консоль PostgreSQL от стандартного пользователя `postgres` для настройки базы данных:
 
-```
+```bash
 sudo -u postgres psql
 ```
 
 Создание пользователя, от которого будет подключаться наше приложение к базе данных:
 
-```
+```sql
 CREATE USER your_user WITH PASSWORD 'your_password';
 ```
 
 Создание базы данных, с которой будет работать наше приложение:
 
-```
+```sql
 CREATE DATABASE database_name OWNER your_user;
 ```
 
 Установка прав нашему пользователю:
 
-```
+```sql
 GRANT ALL ON SCHEMA public TO your_user;
 ```
 
 Выход из консоли PostgreSQL:
 
-```
+```sql
 \q
 ```
 
 #### 6. Создание файла `.env` с переменными окружения
 
-```
+```conf
 DB_NAME=database_name
 DB_USER=your_user
 DB_PASSWORD=your_password
@@ -155,23 +156,24 @@ ALLOWED_HOSTS=*
 
 #### 7. Выполнение миграций
 
-```
+```bash
 python3 manage.py migrate
 ```
 
 #### 8. Загрузка вопросов для квеста в базу данных
 
-```
+```bash
 python3 manage.py loaddata questions.json
 ```
 
 #### 9. Запуск приложения
 
-```
+```bash
 python3 manage.py runserver
 ```
 
 Сайт будет доступен по ссылке `http://127.0.0.1:8000`
+
 </details>
 
 ---
@@ -182,7 +184,7 @@ python3 manage.py runserver
 <summary>Переменные окружения (.env)</summary>
 
 | Переменная             | Описание              | Пример                                  |
-|------------------------|-----------------------|-----------------------------------------|
+| ---------------------- | --------------------- | --------------------------------------- |
 | `DB_NAME`              | Имя базы данных       | `cyber_fraud_quiz`                      |
 | `DB_USER`              | Пользователь БД       | генерируется автоматически              |
 | `DB_PASSWORD`          | Пароль БД             | генерируется автоматически              |
@@ -197,7 +199,7 @@ python3 manage.py runserver
 <summary>Docker Compose сервисы</summary>
 
 | Сервис       | Описание           | Порт   |
-|--------------|--------------------|--------|
+| ------------ | ------------------ | ------ |
 | `db`         | PostgreSQL         | `5432` |
 | `web`        | Django + Gunicorn  | `8000` |
 | `nginx`      | Nginx (веб-сервер) | `80`   |
@@ -220,7 +222,7 @@ python3 manage.py runserver
 <summary>Необходимые секреты GitHub</summary>
 
 | Имя               | Описание                                          |
-|-------------------|---------------------------------------------------|
+| ----------------- | ------------------------------------------------- |
 | `SSH_HOST`        | IP-адрес сервера                                  |
 | `SSH_PORT`        | Порт SSH                                          |
 | `SSH_PRIVATE_KEY` | Приватный SSH-ключ                                |
@@ -243,7 +245,7 @@ python3 manage.py runserver
 <summary>Дашборды Grafana</summary>
 
 | Дашборд              | Описание                    |
-|----------------------|-----------------------------|
+| -------------------- | --------------------------- |
 | `Django`             | Статистика запросов к сайту |
 | `Node Exporter Full` | Состояние сервера           |
 
@@ -283,7 +285,7 @@ terraform/
 
 ### Запуск
 
-```
+```bash
 cd terraform
 terraform init      # инициализация и установка провайдера
 terraform plan      # план изменений
@@ -292,7 +294,7 @@ terraform apply     # создание инфраструктуры
 
 ### Получение IP адреса
 
-```
+```bash
 terraform output external_ip
 ```
 
@@ -305,6 +307,76 @@ terraform output external_ip
 
 ---
 
+## Ansible
+
+Для настройки сервера и развертывания приложения используется **Ansible**. Плейбук автоматически:
+
+- Устанавливает Docker (если не установлен)
+- Создает рабочую директорию
+- Скачивает актуальный `deploy.sh`
+- Запускает развертывание
+
+### Структура
+
+```
+ansible/
+├── ansible.cfg         # настройки Ansible
+├── inventory/
+│   └── hosts.ini       # список серверов
+└── playbooks/
+    └── deploy.yml      # основной плейбук
+```
+
+### Запуск
+
+#### 1. Установка Ansible
+
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install -y ansible
+```
+
+#### 2. Настройка параметров подключения
+
+Отредактировать `ansible/inventory/hosts.ini`:
+
+```ini
+[webservers]
+web1 ansible_host=192.168.1.100 ansible_user=debian ansible_ssh_private_key_file=~/.ssh/id_ed25519
+```
+
+#### 3. Запуск плейбука
+
+```bash
+cd ansible
+ansible-playbook playbooks/deploy.yml
+```
+
+### Что делает плейбук
+
+| Шаг | Задача                         | Модуль Ansible |
+| --- | ------------------------------ | -------------- |
+| 1   | Проверка наличия Docker        | `command`      |
+| 2   | Установка Docker               | `shell`        |
+| 3   | Запуск Docker                  | `service`      |
+| 4   | Создание `/opt/CyberFraudQuiz` | `file`         |
+| 5   | Скачивание `deploy.sh`         | `get_url`      |
+| 6   | Запуск `deploy.sh`             | `command`      |
+
+### Идемпотентность
+
+При повторном запуске плейбук **не вносит изменений**, если система уже в нужном состоянии:
+
+```
+PLAY RECAP *****************************************************
+web1 : ok=5  changed=0  unreachable=0  failed=0  skipped=3
+```
+
+`changed=0` означает, что все уже настроено.
+
+---
+
 ## Структура проекта
 
 ```
@@ -312,6 +384,7 @@ CyberFraudQuiz
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml    # CI/CD пайплайн
+├── ansible/              # конфиги для Ansible
 ├── CyberFraudQuiz/       # настройки Django-проекта
 ├── CyberFraudQuizSite/   # основной код приложения
 ├── static/               # папка со статическими файлами приложения (css, иконки)
@@ -338,7 +411,7 @@ CyberFraudQuiz
 [GitHub](https://github.com/AlbertSalimov) · [Telegram](https://t.me/albert_salimov99) · [Email](mailto:salimovalbert99@yandex.ru)
 
 > Проект выполнен в рамках портфолио. Используемые технологии:  
-> Django, PostgreSQL, Nginx, Docker, GitHub Actions, Prometheus, Grafana, Terraform.
+> Django, PostgreSQL, Nginx, Docker, GitHub Actions, Prometheus, Grafana, Terraform, Ansible.
 
 ---
 
@@ -346,4 +419,4 @@ CyberFraudQuiz
 
 Проект развернут на сервере `Yandex Cloud` и доступен по адресу:
 
-**[http://81.26.179.171](http://81.26.179.171)**
+**[http://51.250.40.100](http://51.250.40.100)**

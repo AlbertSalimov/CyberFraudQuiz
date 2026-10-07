@@ -30,17 +30,31 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build_and_push
-    if: github.ref == 'refs/heads/main'
     steps:
-      - name: Deploy to prod server via SSH
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            cd /opt/CyberFraudQuiz
-            wget -q -O deploy.sh https://raw.githubusercontent.com/AlbertSalimov/CyberFraudQuiz/refs/heads/main/deploy.sh
-            chmod +x deploy.sh
-            ./deploy.sh
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+
+      - name: Create SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Create inventory
+        run: |
+          sed -e "s/SSH_HOST/${{ secrets.SSH_HOST }}/" \
+            -e "s/SSH_USER/${{ secrets.SSH_USER }}/" \
+            ansible/inventory/hosts.ini.example > ansible/inventory/hosts.ini
+
+      - name: Run Ansible playbook
+        run: |
+          cd ansible
+          ansible-playbook playbooks/deploy.yml
+
+      - name: Remove SSH key
+        run: rm -f ~/.ssh/id_ed25519
