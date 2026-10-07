@@ -33,5 +33,6 @@ sed -i "s/^SECRET_KEY=.*/SECRET_KEY=$ESCAPED_SECRET_KEY/" $ENV_FILE
 sed -i "s/^ALLOWED_HOSTS=\(.*\)/ALLOWED_HOSTS=\1,$SERVER_IP/" $ENV_FILE
 sed -i "s|^CSRF_TRUSTED_ORIGINS=.*|CSRF_TRUSTED_ORIGINS=http://$SERVER_IP|" $ENV_FILE
 
-docker compose pull
+docker compose pull web
 docker compose up -d
+docker image prune -f
