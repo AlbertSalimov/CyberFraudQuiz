@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: cyber-fraud-quiz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: postgres:17-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h db -p 5432 \
+                -U "$DB_USER" -d "$DB_NAME"; do
+                echo "Waiting for PostgreSQL..."
+                sleep 2
+              done
+          env:
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: DB_USER
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: DB_NAME
+        - name: copy-static
+          image: ghcr.io/albertsalimov/cyber_fraud_quiz:latest
+          command:
+            - sh
+            - -c
+            - cp -r /opt/CyberFraudQuiz/staticfiles/. /static/
+          volumeMounts:
+            - name: static
+              mountPath: /static
+      containers:
+        - name: app
+          image: ghcr.io/albertsalimov/cyber_fraud_quiz:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: DB_PORT
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: DB_PASSWORD
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: DB_NAME
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: SECRET_KEY
+            - name: ALLOWED_HOSTS
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: ALLOWED_HOSTS
+            - name: CSRF_TRUSTED_ORIGINS
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: CSRF_TRUSTED_ORIGINS
+          volumeMounts:
+            - name: static
+              mountPath: /static
+          readinessProbe:
+            tcpSocket:
+              port: 8000
+            periodSeconds: 10
+      volumes:
+        - name: static
+          persistentVolumeClaim:
+            claimName: static-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: cyber-fraud-quiz
+spec:
+  selector:
+    app: web
+  ports:
+    - port: 8000
+      targetPort: 8000
